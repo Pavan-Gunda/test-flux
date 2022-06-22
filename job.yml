@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: deploy-sc
+  # namespace: ck8s-demo
+spec:
+  template:
+    metadata:
+    spec:
+      
+      automountServiceAccountToken: false    
+      containers:
+      - image: harbor.pg-dev-ck8s.a1ck.io/devbox-demo/ck8s-devbox
+        imagePullPolicy: Always
+        name: deploy-sc
+        command:  ["/bin/sh","-c"] 
+        args: [git clone https://Pavan-Gunda:$(GIT_PASSWORD)@github.com/Pavan-Gunda/test-env.git '/testing/'; sh /home/pavan/upgrade.sh; sleep 100000] 
+        env:
+        - name: GIT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: test-secret
+        - name: GIT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: test-secret
+        - name: CK8S_CONFIG_PATH
+          value: /testing    
+        - name: "CK8S_PGP_FP"
+          value: "F72619FD4C2450B13C8E4C3204782DDE0168914B"                          
+        volumeMounts:
+            - name: test-volume
+              mountPath: /testing
+            - mountPath: /deploy-pgp-key
+              name: deploy-pgp-key 
+            - mountPath: /deploy-pub-key
+              name: deploy-pub-key               
+              readOnly: true                   
+        securityContext:
+            runAsUser: 1000              
+      restartPolicy: Never              
+      volumes:
+        - name: test-volume
+          emptyDir: {}
+        - name: deploy-pgp-key
+          secret:
+            secretName: pgp-secret
+        - name: deploy-pub-key
+          secret:
+            secretName: pub-secret            
